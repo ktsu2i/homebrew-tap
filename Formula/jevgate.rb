@@ -3,13 +3,6 @@ class Jevgate < Formula
   homepage "https://github.com/ktsu2i/jevgate"
   version "0.1.0"
 
-  head do
-    url "https://github.com/ktsu2i/jevgate.git", branch: "main"
-    depends_on "go" => :build
-  end
-
-  depends_on "git"
-
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/ktsu2i/jevgate/releases/download/v0.1.0/jevgate_0.1.0_darwin_arm64.tar.gz"
@@ -30,6 +23,11 @@ class Jevgate < Formula
       url "https://github.com/ktsu2i/jevgate/releases/download/v0.1.0/jevgate_0.1.0_linux_amd64.tar.gz"
       sha256 "2ebe9f2119da9abba3296b5a67704d8150a2fc726d11cce4fcf05a9079ee8b0e"
     end
+  end
+
+  head do
+    url "https://github.com/ktsu2i/jevgate.git", branch: "main"
+    depends_on "go" => :build
   end
 
   def install
