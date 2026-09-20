@@ -1,0 +1,64 @@
+name: update
+
+on:
+  schedule:
+    - cron: "29 0,9 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  update:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install maltmill
+        run: make depsdev
+
+      - name: Update formulae
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: make update
+
+      - name: Tap the checked out repository
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          owner=$(echo "${OWNER}" | tr '[:upper:]' '[:lower:]')
+          mkdir -p "$(brew --repository)/Library/Taps/${owner}"
+          ln -s "${GITHUB_WORKSPACE}" "$(brew --repository)/Library/Taps/${owner}/homebrew-tap"
+          echo "TAP_OWNER=${owner}" >> "${GITHUB_ENV}"
+
+      - name: Install and test every formula
+        run: |
+          for f in Formula/*.rb; do
+            name=$(basename "${f}" .rb)
+            brew install "${TAP_OWNER}/tap/${name}"
+            brew test "${TAP_OWNER}/tap/${name}"
+          done
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: update-formulae
+          delete-branch: true
+          title: Update formulae to the latest releases
+          commit-message: "chore: update formulae to the latest releases"
+          body: |
+            `make update` による maltmill の実行結果です。
+
+            同じ workflow 内で `brew install` と `brew test` を通しています。
+            GITHUB_TOKEN で作成した pull request では test workflow が起動しないため、
+            検証は update workflow 側で完結させています。

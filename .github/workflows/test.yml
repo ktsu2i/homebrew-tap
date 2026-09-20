@@ -1,0 +1,37 @@
+name: test
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Tap the checked out repository
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          owner=$(echo "${OWNER}" | tr '[:upper:]' '[:lower:]')
+          mkdir -p "$(brew --repository)/Library/Taps/${owner}"
+          ln -s "${GITHUB_WORKSPACE}" "$(brew --repository)/Library/Taps/${owner}/homebrew-tap"
+          echo "TAP_OWNER=${owner}" >> "${GITHUB_ENV}"
+
+      - name: Install and test every formula
+        run: |
+          for f in Formula/*.rb; do
+            name=$(basename "${f}" .rb)
+            brew install "${TAP_OWNER}/tap/${name}"
+            brew test "${TAP_OWNER}/tap/${name}"
+          done
