@@ -26,9 +26,10 @@ jobs:
       - name: Install maltmill
         run: make depsdev
 
-      - name: Update formulae
+      - name: Update formulae and casks
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: make update
 
       - name: Tap the checked out repository
@@ -42,10 +43,20 @@ jobs:
 
       - name: Install and test every formula
         run: |
+          shopt -s nullglob
           for f in Formula/*.rb; do
             name=$(basename "${f}" .rb)
             brew install "${TAP_OWNER}/tap/${name}"
             brew test "${TAP_OWNER}/tap/${name}"
+          done
+
+      - name: Install every cask
+        run: |
+          shopt -s nullglob
+          for c in Casks/*.rb; do
+            name=$(basename "${c}" .rb)
+            brew install --cask "${TAP_OWNER}/tap/${name}"
+            brew audit --cask "${TAP_OWNER}/tap/${name}"
           done
 
       - name: Create pull request
@@ -54,11 +65,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update-formulae
           delete-branch: true
-          title: Update formulae to the latest releases
-          commit-message: "chore: update formulae to the latest releases"
+          title: Update formulae and casks to the latest releases
+          commit-message: "chore: update formulae and casks to the latest releases"
           body: |
-            `make update` による maltmill の実行結果です。
+            `make update` (Formula は maltmill、Cask は `scripts/update-casks.sh`) の実行結果です。
 
-            同じ workflow 内で `brew install` と `brew test` を通しています。
+            同じ workflow 内で Formula は `brew install` と `brew test`、Cask は `brew install --cask` と `brew audit --cask` を通しています。
             GITHUB_TOKEN で作成した pull request では test workflow が起動しないため、
             検証は update workflow 側で完結させています。

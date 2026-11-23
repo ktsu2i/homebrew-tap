@@ -30,8 +30,18 @@ jobs:
 
       - name: Install and test every formula
         run: |
+          shopt -s nullglob
           for f in Formula/*.rb; do
             name=$(basename "${f}" .rb)
             brew install "${TAP_OWNER}/tap/${name}"
             brew test "${TAP_OWNER}/tap/${name}"
+          done
+
+      - name: Install every cask
+        run: |
+          shopt -s nullglob
+          for c in Casks/*.rb; do
+            name=$(basename "${c}" .rb)
+            brew install --cask "${TAP_OWNER}/tap/${name}"
+            brew audit --cask "${TAP_OWNER}/tap/${name}"
           done
