@@ -3,9 +3,15 @@ name: update
 on:
   schedule:
     - cron: "29 0,9 * * *"
+  # 各リポジトリの release workflow からも `gh workflow run update.yml` で起動される。
   workflow_dispatch:
 
 permissions: {}
+
+# cron と release からの dispatch が同じ update-formulae ブランチを同時に触らないようにする。
+concurrency:
+  group: update
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -60,6 +66,7 @@ jobs:
           done
 
       - name: Create pull request
+        id: cpr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -73,3 +80,12 @@ jobs:
             同じ workflow 内で Formula は `brew install` と `brew test`、Cask は `brew install --cask` と `brew audit --cask` を通しています。
             GITHUB_TOKEN で作成した pull request では test workflow が起動しないため、
             検証は update workflow 側で完結させています。
+
+      # 上の install / test / audit を通った変更だけがここに来るので、そのまま merge する。
+      # merge しないと `brew upgrade` から新しいバージョンが見えない。
+      - name: Merge pull request
+        if: steps.cpr.outputs.pull-request-operation == 'created' || steps.cpr.outputs.pull-request-operation == 'updated'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
+        run: gh pr merge "$PR_NUMBER" --squash --delete-branch --repo "$GITHUB_REPOSITORY"
