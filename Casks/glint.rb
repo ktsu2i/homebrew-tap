@@ -1,6 +1,6 @@
 cask "glint" do
-  version "0.3.0"
-  sha256 "5f86ae5a11676253e829bbc70f0cd2a6e2a76879a8842514f367de9531ca0105"
+  version "0.4.0"
+  sha256 "54d45dae69831c787e7e557725d2049dd3021658687372142b895b44331ae0f8"
 
   url "https://github.com/ktsu2i/glint/releases/download/v#{version}/Glint-#{version}-darwin-universal.zip"
   name "Glint"
